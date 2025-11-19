@@ -28,7 +28,7 @@ class CallbackTask(Task):
 
 
 @celery_app.task(bind=True, base=CallbackTask, name="process_consultation")
-def process_consultation(self, consultation_id: str):
+async def process_consultation(self, consultation_id: str):
     """
     Process consultation: download audio, transcribe, generate summary, suggest ICD codes
 
