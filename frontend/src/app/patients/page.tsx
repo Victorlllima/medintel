@@ -9,12 +9,29 @@ import { formatCPF, formatPhone } from '@/lib/validations'
 export default function PatientsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [showForm, setShowForm] = useState(false)
-  const { patients, isLoading, createPatient, deletePatient } = usePatientsData(searchTerm)
+  const [editingPatient, setEditingPatient] = useState<any>(null)
+  const { patients, isLoading, createPatient, updatePatient, deletePatient } = usePatientsData(searchTerm)
 
   const handleCreatePatient = (data: any) => {
     createPatient.mutate(data, {
       onSuccess: () => setShowForm(false)
     })
+  }
+
+  const handleEditPatient = (patient: any) => {
+    setEditingPatient(patient)
+  }
+
+  const handleUpdatePatient = (data: any) => {
+    updatePatient.mutate(
+      {
+        id: editingPatient.id,
+        ...data
+      },
+      {
+        onSuccess: () => setEditingPatient(null)
+      }
+    )
   }
 
   const calculateAge = (dateOfBirth: string) => {
@@ -62,7 +79,7 @@ export default function PatientsPage() {
           </div>
         </div>
 
-        {/* Modal de Formulário */}
+        {/* Modal de Criação */}
         {showForm && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
             <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
@@ -71,6 +88,30 @@ export default function PatientsPage() {
                 onSubmit={handleCreatePatient}
                 onCancel={() => setShowForm(false)}
                 isLoading={createPatient.isPending}
+              />
+            </div>
+          </div>
+        )}
+
+        {/* Modal de Edição */}
+        {editingPatient && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto p-6">
+              <h2 className="text-2xl font-bold mb-6">Editar Paciente</h2>
+              <PatientForm
+                onSubmit={handleUpdatePatient}
+                onCancel={() => setEditingPatient(null)}
+                isLoading={updatePatient.isPending}
+                initialData={{
+                  name: editingPatient.name,
+                  cpf: editingPatient.cpf,
+                  date_of_birth: editingPatient.date_of_birth,
+                  phone: editingPatient.phone,
+                  email: editingPatient.email,
+                  allergies: editingPatient.allergies,
+                  medical_history: editingPatient.medical_history,
+                  consent_given: editingPatient.consent_given
+                }}
               />
             </div>
           </div>
@@ -129,6 +170,7 @@ export default function PatientsPage() {
                     <td className="px-6 py-4">
                       <div className="flex items-center justify-end gap-2">
                         <button
+                          onClick={() => handleEditPatient(patient)}
                           className="p-2 text-neutral-600 hover:text-primary-500 hover:bg-primary-50 rounded"
                           title="Editar"
                         >
