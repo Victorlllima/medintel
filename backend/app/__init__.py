@@ -1,0 +1,3 @@
+"""
+MedIntel - Medical Documentation SaaS
+"""
