@@ -1,159 +1,182 @@
-'use client';
+'use client'
 
-import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
-import { useConsultations } from '@/hooks/useConsultations';
-import { ConsultationDetails } from '@/components/consultations/ConsultationDetails';
-import { formatDate, formatDuration, getStatusColor, getStatusLabel } from '@/lib/utils';
-import { Plus, Loader2, AlertCircle, Calendar, Clock } from 'lucide-react';
+import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { supabase, type Consultation } from '@/lib/supabase'
+import { Plus, FileText, Clock, CheckCircle, XCircle } from 'lucide-react'
+import { formatTime } from '@/lib/audioUtils'
+import { motion } from 'framer-motion'
 
 export default function ConsultationsPage() {
-  const [selectedConsultationId, setSelectedConsultationId] = useState<string | null>(null);
-  const [detailsOpen, setDetailsOpen] = useState(false);
+  const router = useRouter()
+  const [consultations, setConsultations] = useState<Consultation[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const { data: consultations, isLoading, error } = useConsultations();
+  useEffect(() => {
+    fetchConsultations()
+  }, [])
 
-  const handleConsultationClick = (consultationId: string) => {
-    setSelectedConsultationId(consultationId);
-    setDetailsOpen(true);
-  };
+  const fetchConsultations = async () => {
+    try {
+      setIsLoading(true)
+      const { data, error } = await supabase
+        .from('consultations')
+        .select('*')
+        .order('created_at', { ascending: false })
 
-  const handleDetailsClose = (open: boolean) => {
-    setDetailsOpen(open);
-    if (!open) {
-      setSelectedConsultationId(null);
+      if (error) throw error
+
+      setConsultations(data || [])
+    } catch (err: any) {
+      console.error('Error fetching consultations:', err)
+      setError('Erro ao carregar consultas')
+    } finally {
+      setIsLoading(false)
     }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto py-8">
-        <div className="flex items-center justify-center py-12">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
-        </div>
-      </div>
-    );
   }
 
-  if (error) {
-    return (
-      <div className="container mx-auto py-8">
-        <div className="flex flex-col items-center justify-center py-12 text-center">
-          <AlertCircle className="h-12 w-12 text-destructive mb-4" />
-          <h2 className="text-2xl font-bold">Erro ao carregar consultas</h2>
-          <p className="text-muted-foreground mt-2">
-            Não foi possível carregar a lista de consultas. Tente novamente.
-          </p>
-        </div>
-      </div>
-    );
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-100 text-green-700'
+      case 'processing':
+        return 'bg-yellow-100 text-yellow-700'
+      case 'queued':
+        return 'bg-blue-100 text-blue-700'
+      case 'failed':
+        return 'bg-red-100 text-red-700'
+      default:
+        return 'bg-neutral-100 text-neutral-700'
+    }
+  }
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return <CheckCircle size={16} />
+      case 'processing':
+        return <Clock size={16} />
+      case 'queued':
+        return <Clock size={16} />
+      case 'failed':
+        return <XCircle size={16} />
+      default:
+        return <FileText size={16} />
+    }
+  }
+
+  const getStatusText = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'Concluída'
+      case 'processing':
+        return 'Processando'
+      case 'queued':
+        return 'Na fila'
+      case 'failed':
+        return 'Falhou'
+      default:
+        return status
+    }
   }
 
   return (
-    <div className="container mx-auto py-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-4xl font-bold">Consultas</h1>
-          <p className="text-muted-foreground mt-2">
-            Gerencie e visualize todas as suas consultas médicas
-          </p>
-        </div>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Nova Consulta
-        </Button>
-      </div>
+    <div className="min-h-screen bg-neutral-50 p-4 md:p-8">
+      <div className="max-w-6xl mx-auto">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-neutral-900 mb-2">Consultas</h1>
+            <p className="text-neutral-600">
+              Visualize e gerencie suas consultas gravadas
+            </p>
+          </div>
 
-      {consultations && consultations.length === 0 ? (
-        <Card>
-          <CardContent className="py-12">
-            <div className="text-center">
-              <p className="text-lg font-medium">Nenhuma consulta encontrada</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Comece criando sua primeira consulta
-              </p>
-              <Button className="mt-4">
-                <Plus className="mr-2 h-4 w-4" />
-                Criar Consulta
-              </Button>
+          <motion.button
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={() => router.push('/consultations/new')}
+            className="px-6 py-3 bg-primary hover:bg-blue-700 text-white rounded-lg font-semibold shadow-lg transition-colors flex items-center gap-2"
+          >
+            <Plus size={20} />
+            Nova Consulta
+          </motion.button>
+        </div>
+
+        {/* Consultations List */}
+        <div className="bg-white rounded-lg shadow-sm overflow-hidden">
+          {isLoading ? (
+            <div className="text-center py-12 text-neutral-500">
+              Carregando consultas...
             </div>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {consultations?.map((consultation) => (
-            <Card
-              key={consultation.id}
-              className="cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => handleConsultationClick(consultation.id)}
-            >
-              <CardHeader>
-                <div className="flex justify-between items-start">
-                  <div className="flex-1">
-                    <CardTitle className="text-xl">{consultation.patient_name}</CardTitle>
-                    <CardDescription className="flex items-center gap-1 mt-2">
-                      <Calendar className="h-3 w-3" />
-                      {formatDate(consultation.consultation_date)}
-                    </CardDescription>
+          ) : error ? (
+            <div className="text-center py-12 text-red-600">
+              {error}
+            </div>
+          ) : consultations.length === 0 ? (
+            <div className="text-center py-12">
+              <FileText size={48} className="mx-auto text-neutral-300 mb-4" />
+              <h3 className="text-lg font-semibold text-neutral-900 mb-2">
+                Nenhuma consulta encontrada
+              </h3>
+              <p className="text-neutral-600 mb-6">
+                Comece gravando sua primeira consulta
+              </p>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => router.push('/consultations/new')}
+                className="px-6 py-3 bg-primary hover:bg-blue-700 text-white rounded-lg font-semibold transition-colors inline-flex items-center gap-2"
+              >
+                <Plus size={20} />
+                Nova Consulta
+              </motion.button>
+            </div>
+          ) : (
+            <div className="divide-y divide-neutral-200">
+              {consultations.map((consultation) => (
+                <div
+                  key={consultation.id}
+                  onClick={() => router.push(`/consultations/${consultation.id}`)}
+                  className="p-6 hover:bg-neutral-50 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="font-semibold text-neutral-900">
+                          Consulta #{consultation.id.slice(0, 8)}
+                        </h3>
+                        <span
+                          className={`px-3 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${getStatusColor(
+                            consultation.status
+                          )}`}
+                        >
+                          {getStatusIcon(consultation.status)}
+                          {getStatusText(consultation.status)}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-neutral-600">
+                        <span>Duração: {formatTime(consultation.duration)}</span>
+                        <span>
+                          Data:{' '}
+                          {new Date(consultation.created_at).toLocaleDateString('pt-BR', {
+                            day: '2-digit',
+                            month: '2-digit',
+                            year: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          })}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <Badge className={getStatusColor(consultation.status)}>
-                    {getStatusLabel(consultation.status)}
-                  </Badge>
                 </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {consultation.audio_duration && (
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Clock className="h-4 w-4" />
-                      <span>Duração: {formatDuration(consultation.audio_duration)}</span>
-                    </div>
-                  )}
-
-                  {consultation.status === 'completed' && (
-                    <div className="pt-2 space-y-1">
-                      {consultation.transcription && (
-                        <p className="text-xs text-muted-foreground">✓ Transcrição disponível</p>
-                      )}
-                      {consultation.summary && (
-                        <p className="text-xs text-muted-foreground">✓ Resumo disponível</p>
-                      )}
-                      {consultation.cid10_suggestions &&
-                        consultation.cid10_suggestions.length > 0 && (
-                          <p className="text-xs text-muted-foreground">
-                            ✓ {consultation.cid10_suggestions.length} sugestões de CID-10
-                          </p>
-                        )}
-                    </div>
-                  )}
-
-                  {consultation.status === 'processing' && (
-                    <div className="flex items-center gap-2 text-sm text-blue-600">
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      <span>Processando...</span>
-                    </div>
-                  )}
-
-                  {consultation.status === 'failed' && (
-                    <div className="flex items-center gap-2 text-sm text-destructive">
-                      <AlertCircle className="h-4 w-4" />
-                      <span>Falha no processamento</span>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+              ))}
+            </div>
+          )}
         </div>
-      )}
-
-      <ConsultationDetails
-        consultationId={selectedConsultationId}
-        open={detailsOpen}
-        onOpenChange={handleDetailsClose}
-      />
+      </div>
     </div>
-  );
+  )
 }
