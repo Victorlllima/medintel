@@ -1,145 +1,322 @@
-# MedIntel - Sistema de Gravação de Consultas
+# MedIntel - Sistema de Geração de Documentos Médicos
 
-Sistema inteligente de gravação de consultas médicas com visualização de ondas sonoras em tempo real.
+Sistema completo para geração automática de documentos médicos em PDF, incluindo atestados, receitas e declarações de comparecimento.
 
-## Características
+## 🚀 Funcionalidades
 
-- **Gravação em Tempo Real**: Capture consultas médicas com alta qualidade de áudio
-- **Visualização de Ondas Sonoras**: Feedback visual animado que mostra quando o áudio está sendo captado
-- **Estados Visuais Inteligentes**:
-  - Linha reta durante silêncio
-  - Ondas animadas durante fala
-  - Indicador de status (Captando áudio / Silêncio / Pausado)
-- **Controles Completos**: Iniciar, Pausar/Retomar, Finalizar gravação
-- **Interface Profissional**: Design moderno e responsivo com Tailwind CSS
-- **Gerenciamento de Gravações**: Visualize, reproduza, baixe e exclua gravações
+### Tipos de Documentos Suportados
 
-## Tecnologias Utilizadas
+#### 1. Atestado Médico
+- Nome completo do paciente
+- CPF do paciente
+- Data da consulta
+- Número de dias de afastamento
+- CID-10 (opcional)
+- Assinatura digital do médico (nome + CRM)
 
-- **Next.js 14** - Framework React com App Router
-- **TypeScript** - Tipagem estática
-- **Tailwind CSS** - Estilização moderna e responsiva
-- **Web Audio API** - Análise de áudio em tempo real (AnalyserNode)
-- **MediaRecorder API** - Gravação de áudio do navegador
-- **Canvas API** - Renderização das ondas sonoras
+#### 2. Receita Médica
+- Nome completo do paciente
+- Data da consulta
+- Lista de medicamentos com posologia
+- Validade da receita
+- Assinatura digital do médico (nome + CRM)
 
-## Estrutura do Projeto
+#### 3. Declaração de Comparecimento
+- Nome completo do paciente
+- CPF do paciente
+- Data e hora da consulta
+- Duração aproximada
+- Assinatura digital do médico (nome + CRM)
+
+## 🏗️ Arquitetura
+
+### Backend (FastAPI + Python)
+- **FastAPI**: Framework web moderno e rápido
+- **ReportLab**: Geração de PDFs
+- **Supabase**: Banco de dados PostgreSQL e storage
+- **Pydantic**: Validação de dados
+
+### Frontend (React + Vite)
+- **React**: Biblioteca UI
+- **Vite**: Build tool rápido
+- **Tailwind CSS**: Estilização
+- **Axios**: Cliente HTTP
+
+## 📦 Estrutura do Projeto
 
 ```
 medintel/
-├── src/
+├── backend/
 │   ├── app/
-│   │   ├── consultations/
-│   │   │   └── page.tsx          # Página de consultas
-│   │   ├── globals.css           # Estilos globais
-│   │   ├── layout.tsx            # Layout principal
-│   │   └── page.tsx              # Página inicial
-│   └── components/
-│       ├── AudioRecorder.tsx     # Componente principal de gravação
-│       └── AudioWaveform.tsx     # Visualização de ondas sonoras
-├── package.json
-├── tsconfig.json
-├── tailwind.config.ts
-└── next.config.js
+│   │   ├── models/          # Modelos Pydantic
+│   │   ├── services/        # Lógica de negócio
+│   │   ├── routes/          # Endpoints da API
+│   │   ├── utils/           # Utilitários
+│   │   └── middleware/      # Autenticação
+│   ├── main.py
+│   └── requirements.txt
+├── frontend/
+│   ├── src/
+│   │   ├── components/      # Componentes React
+│   │   ├── services/        # API client
+│   │   └── App.jsx
+│   └── package.json
+├── database/
+│   ├── schema.sql           # Schema do banco
+│   ├── seed.sql             # Dados de teste
+│   └── storage_setup.sql    # Configuração do storage
+└── README.md
 ```
 
-## Como Funciona
+## 🛠️ Instalação
 
-### AudioWaveform Component
+### Pré-requisitos
+- Python 3.11+
+- Node.js 18+
+- Conta no Supabase
 
-O componente `AudioWaveform` utiliza a Web Audio API para visualizar as ondas sonoras:
+### 1. Setup do Supabase
 
-1. **AudioContext**: Cria contexto de áudio
-2. **AnalyserNode**: Analisa frequências do áudio em tempo real
-3. **Canvas**: Desenha as ondas baseadas nos dados de frequência
-4. **requestAnimationFrame**: Atualiza a visualização suavemente
+1. Crie um projeto no [Supabase](https://supabase.com)
+2. Execute o script `database/schema.sql` no SQL Editor
+3. (Opcional) Execute `database/seed.sql` para dados de teste
+4. Crie um bucket de storage chamado `documents` (privado)
+5. Execute `database/storage_setup.sql` para configurar as políticas
 
-**Estados Visuais**:
-- `isRecording=false`: Linha cinza reta (inativo)
-- `isRecording=true + silêncio`: Linha azul clara com pequena vibração
-- `isRecording=true + voz`: Ondas azuis grandes e animadas
-- `isPaused=true`: Visualização congelada
-
-### AudioRecorder Component
-
-Gerencia toda a lógica de gravação:
-
-- **MediaRecorder**: Captura áudio do microfone
-- **Timer**: Cronômetro da gravação
-- **Controles**: Iniciar, Pausar/Retomar, Finalizar
-- **Callback**: Retorna o Blob de áudio ao finalizar
-
-## Instalação
+### 2. Setup do Backend
 
 ```bash
+cd backend
+
+# Criar ambiente virtual
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# ou
+venv\Scripts\activate  # Windows
+
+# Instalar dependências
+pip install -r requirements.txt
+
+# Configurar variáveis de ambiente
+cp .env.example .env
+# Editar .env com suas credenciais do Supabase
+
+# Rodar servidor
+python main.py
+```
+
+O backend estará disponível em: http://localhost:8000
+
+API Docs: http://localhost:8000/api/docs
+
+### 3. Setup do Frontend
+
+```bash
+cd frontend
+
 # Instalar dependências
 npm install
 
-# Executar em modo desenvolvimento
+# Configurar variáveis de ambiente
+cp .env.example .env
+# Editar .env com a URL da API
+
+# Rodar servidor de desenvolvimento
 npm run dev
-
-# Build para produção
-npm run build
-
-# Executar build de produção
-npm start
 ```
 
-## Uso
+O frontend estará disponível em: http://localhost:3000
 
-1. Acesse `http://localhost:3000`
-2. Clique em "Acessar Sistema de Gravação"
-3. Clique em "Nova Gravação"
-4. Clique em "Iniciar Gravação" e permita acesso ao microfone
-5. Observe as ondas sonoras reagindo à sua voz em tempo real
-6. Use os controles para pausar/retomar ou finalizar
-7. Reproduza, baixe ou exclua suas gravações
+## 📡 API Endpoints
 
-## Permissões Necessárias
+### Documentos
 
-O navegador solicitará permissão para acessar o microfone. Isso é necessário para a gravação funcionar.
+#### POST `/api/documents/generate`
+Gera um novo documento médico
 
-## Compatibilidade
-
-- Chrome/Edge: ✅ Suportado
-- Firefox: ✅ Suportado
-- Safari: ✅ Suportado (iOS 14.3+)
-- Opera: ✅ Suportado
-
-## Implementação Técnica
-
-### Web Audio API
-
-```typescript
-const audioContext = new AudioContext();
-const analyser = audioContext.createAnalyser();
-analyser.fftSize = 2048;
-analyser.smoothingTimeConstant = 0.8;
-
-const dataArray = new Uint8Array(analyser.frequencyBinCount);
-analyser.getByteTimeDomainData(dataArray);
+**Request Body:**
+```json
+{
+  "consultation_id": "uuid",
+  "document_type": "medical_certificate|prescription|attendance_declaration",
+  "additional_data": {
+    // Dados específicos do tipo de documento
+  }
+}
 ```
 
-### Performance
+**Exemplo - Atestado Médico:**
+```json
+{
+  "consultation_id": "123e4567-e89b-12d3-a456-426614174000",
+  "document_type": "medical_certificate",
+  "additional_data": {
+    "days_off": 3,
+    "cid10": "J06.9",
+    "notes": "Repouso absoluto"
+  }
+}
+```
 
-- Uso de `requestAnimationFrame` para animações suaves
-- Cleanup adequado de recursos (AudioContext, MediaStream)
-- Otimização de renderização no Canvas
-- Baixo consumo de CPU (~2-5%)
+**Exemplo - Receita Médica:**
+```json
+{
+  "consultation_id": "123e4567-e89b-12d3-a456-426614174000",
+  "document_type": "prescription",
+  "additional_data": {
+    "medications": [
+      {
+        "name": "Paracetamol",
+        "dosage": "500mg",
+        "instructions": "1 comprimido a cada 8 horas",
+        "duration": "7 dias"
+      }
+    ],
+    "instructions": "Tomar com água",
+    "validity_days": 30
+  }
+}
+```
 
-## Melhorias Futuras
+**Exemplo - Declaração de Comparecimento:**
+```json
+{
+  "consultation_id": "123e4567-e89b-12d3-a456-426614174000",
+  "document_type": "attendance_declaration",
+  "additional_data": {
+    "start_time": "14:00",
+    "end_time": "15:00",
+    "duration_minutes": 60
+  }
+}
+```
 
-- [ ] Transcrição automática usando Speech-to-Text
-- [ ] Análise de sentimento da consulta
-- [ ] Sincronização com prontuário eletrônico
-- [ ] Marcadores de tempo durante gravação
-- [ ] Edição básica de áudio
-- [ ] Compressão de áudio para reduzir tamanho dos arquivos
+#### GET `/api/documents?consultation_id={id}`
+Lista documentos de uma consulta
 
-## Licença
+#### GET `/api/documents/{document_id}`
+Obtém detalhes de um documento
 
-Este projeto é privado e destinado apenas para uso interno.
+#### DELETE `/api/documents/{document_id}`
+Remove um documento
 
-## Suporte
+## 🔒 Autenticação
 
-Para dúvidas ou problemas, entre em contato com a equipe de desenvolvimento.
+A API usa JWT Bearer tokens para autenticação.
+
+Adicione o token no header:
+```
+Authorization: Bearer <seu-token-jwt>
+```
+
+## 🗄️ Banco de Dados
+
+### Tabelas Principais
+
+- **users**: Usuários do sistema (médicos)
+- **patients**: Pacientes
+- **consultations**: Consultas médicas
+- **documents**: Registros de documentos gerados
+
+### Storage
+
+- **Bucket**: `documents`
+- **Estrutura**: `{user_id}/{consultation_id}/{document_type}_{timestamp}.pdf`
+- **Acesso**: Privado com RLS (Row Level Security)
+
+## 🎨 Interface do Usuário
+
+### Componentes Principais
+
+1. **DocumentGenerator**: Interface para gerar documentos
+   - Botões para cada tipo de documento
+   - Modais com formulários específicos
+   - Validação de campos
+
+2. **DocumentList**: Lista de documentos gerados
+   - Visualização de documentos
+   - Download de PDFs
+   - Exclusão de documentos
+
+## 🧪 Testando a Aplicação
+
+### 1. Criar Usuário (Médico)
+```sql
+INSERT INTO users (email, full_name, role, crm, specialty)
+VALUES ('medico@teste.com', 'Dr. Teste', 'doctor', 'CRM/SP 123456', 'Clínico Geral');
+```
+
+### 2. Criar Paciente
+```sql
+INSERT INTO patients (user_id, first_name, last_name, date_of_birth, gender, cpf)
+VALUES ('user-id-aqui', 'João', 'Silva', '1990-01-01', 'M', '12345678900');
+```
+
+### 3. Criar Consulta
+```sql
+INSERT INTO consultations (patient_id, doctor_id, consultation_date, status)
+VALUES ('patient-id-aqui', 'user-id-aqui', NOW(), 'completed');
+```
+
+### 4. Gerar Documento
+Use a interface web ou faça uma requisição POST para `/api/documents/generate`
+
+## 📝 Desenvolvimento
+
+### Adicionar Novo Tipo de Documento
+
+1. Adicione o tipo em `backend/app/models/document.py`:
+```python
+class DocumentType(str, Enum):
+    # ...
+    NEW_TYPE = "new_type"
+```
+
+2. Crie o método de geração em `backend/app/services/document_generator.py`:
+```python
+def generate_new_type(self, patient_data, doctor_data, document_data):
+    # Implementação
+```
+
+3. Adicione o caso no `_generate_pdf_by_type`:
+```python
+elif document_type == DocumentType.NEW_TYPE:
+    return self.generator.generate_new_type(...)
+```
+
+4. Adicione à interface em `frontend/src/components/DocumentGenerator.jsx`
+
+## 🚀 Deploy
+
+### Backend
+- **Recomendado**: Railway, Render, ou Heroku
+- Configure as variáveis de ambiente
+- Use `uvicorn` ou `gunicorn` como servidor
+
+### Frontend
+- **Recomendado**: Vercel, Netlify, ou Cloudflare Pages
+- Build: `npm run build`
+- Configure variáveis de ambiente
+
+## 📄 Licença
+
+Este projeto é proprietário. Todos os direitos reservados.
+
+## 👥 Autores
+
+Desenvolvido para MedIntel
+
+## 🐛 Reportar Problemas
+
+Para reportar bugs ou sugerir melhorias, abra uma issue no repositório.
+
+## 📚 Recursos Adicionais
+
+- [FastAPI Docs](https://fastapi.tiangolo.com/)
+- [ReportLab Guide](https://docs.reportlab.com/)
+- [Supabase Docs](https://supabase.com/docs)
+- [React Docs](https://react.dev/)
+
+---
+
+**MedIntel** - Sistema de Gerenciamento de Documentos Médicos
